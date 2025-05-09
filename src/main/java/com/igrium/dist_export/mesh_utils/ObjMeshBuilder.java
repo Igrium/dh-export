@@ -6,6 +6,7 @@ import com.seibel.distanthorizons.core.dataObjects.render.bufferBuilding.BufferQ
 import com.seibel.distanthorizons.core.dataObjects.render.bufferBuilding.LodQuadBuilder;
 import com.seibel.distanthorizons.core.enums.EDhDirection;
 import de.javagl.obj.Obj;
+import net.minecraft.util.math.Vec3i;
 
 /**
  * Converts a DH LOD into an Obj mesh object.
@@ -21,23 +22,23 @@ public class ObjMeshBuilder {
         return obj;
     }
 
-    public void addQuads(LodQuadBuilder quadBuilder) {
+    public void addQuads(LodQuadBuilder quadBuilder, Vec3i offset) {
 
         LodQuadBuilderAccessor accessor = (LodQuadBuilderAccessor) quadBuilder;
 
-        var opaque = accessor.getOpaqueQuads();
+        var opaque =  accessor.getOpaqueQuads();
         var transparent = accessor.getTransparentQuads();
 
         for (var quad : new RecursiveIterable<>(opaque)) {
-            addQuad(quad);
+            addQuad(quad, offset);
         }
 
-        for (var quad : new RecursiveIterable<>(opaque)) {
-            addQuad(quad);
+        for (var quad : new RecursiveIterable<>(transparent)) {
+            addQuad(quad, offset);
         }
     }
 
-    private void addQuad(BufferQuad quad) {
+    private void addQuad(BufferQuad quad, Vec3i offset) {
         int index = obj.getNumVertices();
 
         int[][] quadBase = LodQuadBuilder.DIRECTION_VERTEX_IBO_QUAD[quad.direction.ordinal()];
@@ -85,9 +86,9 @@ public class ObjMeshBuilder {
 
 
             // Vertex position in world space
-            wx = quad.x + dx;
-            wy = quad.y + dy;
-            wz = quad.z + dz;
+            wx = quad.x + dx + offset.getX();
+            wy = quad.y + dy + offset.getY();
+            wz = quad.z + dz + offset.getZ();
 
             vertexIndices[i] = obj.getNumVertices();
             obj.addVertex(wx, wy, wz);

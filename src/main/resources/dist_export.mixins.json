@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LodQuadBuilderAccessor",
-    "LodRenderSectionMixin"
+    "LodRenderSectionMixin",
+    "RenderBufferHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
