@@ -1,24 +1,22 @@
 package com.igrium.dist_export;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.igrium.dist_export.command.DistExportCommand;
 import com.igrium.dist_export.mesh_utils.LodQuadHolder;
 import com.igrium.dist_export.mesh_utils.MergedObjWriter;
 import com.igrium.dist_export.mesh_utils.ObjMeshBuilder;
-import com.igrium.dist_export.util.SimpleDhSectionPos;
 import com.seibel.distanthorizons.core.dataObjects.render.bufferBuilding.LodQuadBuilder;
 import com.seibel.distanthorizons.core.pos.DhSectionPos;
 import com.seibel.distanthorizons.core.render.LodQuadTree;
 import com.seibel.distanthorizons.core.render.LodRenderSection;
-import com.seibel.distanthorizons.core.wrapperInterfaces.world.IClientLevelWrapper;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
+import lombok.Getter;
+import lombok.Setter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3i;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,30 +26,28 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class DistExport implements ModInitializer {
-		public static final String MOD_ID = "dist_export";
+	public static final String MOD_ID = "dist_export";
 
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static DistExport instance;
 
-	public static DistExport getInstance() {
-		return instance;
-	}
+	@Getter
+    private static DistExport instance;
 
-	@Nullable
+    @Nullable
 	private LodQuadTree currentQuadTree;
 
 	public @Nullable LodQuadTree getCurrentQuadTree() {
@@ -61,6 +57,11 @@ public class DistExport implements ModInitializer {
 	public void setCurrentQuadTree(@Nullable LodQuadTree currentQuadTree) {
 		this.currentQuadTree = currentQuadTree;
 	}
+
+	@NotNull
+	@Getter
+	@Setter
+	private Set<LodRenderSection> loadedRenderSections = Collections.emptySet();
 
 	@Override
 	public void onInitialize() {
@@ -89,17 +90,28 @@ public class DistExport implements ModInitializer {
 		if (feedbackConsumer != null)
 			feedbackConsumer.accept("Compiling chunks");
 
-		quadTree.leafNodeIterator().forEachRemaining(node -> {
+		for (var section : loadedRenderSections) {
 			futures.add(CompletableFuture.runAsync(() -> {
 				int index = currentIndex.getAndIncrement();
 				String name = "chunk." + index;
-
 				LOGGER.debug("Building mesh for chunk {}", index);
-				Obj obj = renderSection(node.value);
+				Obj obj = renderSection(section);
 				if (obj != null)
 					objs.put(name, obj);
 			}, Util.getMainWorkerExecutor()));
-		});
+		}
+
+//		quadTree.leafNodeIterator().forEachRemaining(node -> {
+//			futures.add(CompletableFuture.runAsync(() -> {
+//				int index = currentIndex.getAndIncrement();
+//				String name = "chunk." + index;
+//
+//				LOGGER.debug("Building mesh for chunk {}", index);
+//				Obj obj = renderSection(node.value);
+//				if (obj != null)
+//					objs.put(name, obj);
+//			}, Util.getMainWorkerExecutor()));
+//		});
 
 		return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApplyAsync(v -> {
 			LOGGER.info("Saving obj");
