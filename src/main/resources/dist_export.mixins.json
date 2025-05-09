@@ -3,6 +3,9 @@
   "package": "com.igrium.dist_export.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ClientLevelModuleMixin",
+    "DhClientLevelMixin",
+    "DhClientServerLevelMixin",
     "LodQuadBuilderAccessor",
     "LodRenderSectionMixin"
   ],

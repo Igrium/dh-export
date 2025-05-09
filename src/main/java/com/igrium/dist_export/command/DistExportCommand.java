@@ -1,16 +1,14 @@
 package com.igrium.dist_export.command;
 
-import com.igrium.dist_export.DistExport;
+import com.igrium.dist_export.DHExport;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandExceptionType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.text.Text;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -43,10 +41,12 @@ public class DistExportCommand {
             throw INVALID_PATH.create();
         }
 
-        DistExport.getInstance().exportDHWorld(path, context.getSource().getWorld()).whenCompleteAsync((r, e) -> {
+        DHExport.getInstance().exportDHWorld(path, feedback -> {
+            context.getSource().sendFeedback(Text.literal(feedback));
+        }).whenCompleteAsync((r, e) -> {
             if (e != null) {
                 context.getSource().sendError(Text.literal("Error exporting mesh. See console for details."));
-                DistExport.LOGGER.error("Error exporting mesh.", e);
+                DHExport.LOGGER.error("Error exporting mesh.", e);
             } else {
                 context.getSource().sendFeedback(Text.literal("Exported mesh to " + path.toAbsolutePath()));
             }
